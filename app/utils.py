@@ -1,25 +1,29 @@
 import torch
-from torchvision import models, transforms
+from torchvision import transforms
+from torchvision.models import resnet50, ResNet50_Weights
 from PIL import Image
 import whisper
 import os
 
-
 ffmpeg_path = "/usr/local/bin/ffmpeg"  
 os.environ['PATH'] += f':{os.path.dirname(ffmpeg_path)}'
 
-
 # ----------------------------
-# Computer Vision Model (unchanged)
+# Computer Vision Model
 # ----------------------------
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
 ])
 class_names = ['Accident', 'No_Accident']
-model = models.resnet50(pretrained=False)
+
+# Updated weights syntax
+weights = None  # same as pretrained=False
+model = resnet50(weights=weights)
+
 num_ftrs = model.fc.in_features
 model.fc = torch.nn.Linear(num_ftrs, 2)
+
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "models/resnet50_accident.pt")
 model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
 model.eval()
@@ -31,6 +35,7 @@ def predict_accident_image(image_path: str) -> str:
         outputs = model(img_tensor)
         _, preds = torch.max(outputs, 1)
     return class_names[preds.item()]
+
 
 # ----------------------------
 # NLP stubs
